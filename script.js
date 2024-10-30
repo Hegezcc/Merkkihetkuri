@@ -24,7 +24,7 @@ submitInput.onclick = function() {
 };
 
 function nextMoment(millis) {
-    return momentsOfInterest.find((moment) => moment[0] >= millis);
+    return momentsOfInterest.findIndex((moment) => moment[0] >= millis);
 }
 
 function getWeeks(millis) {

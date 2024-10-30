@@ -3,17 +3,264 @@
 <head>
     <title>Merkkihetkuri</title>
     <link rel="stylesheet" href="style.css">
+    <script type="importmap">
+        {
+          "imports": {
+            "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+          }
+        }
+      </script>
 </head>
 <body>
-    <div id="inputsDiv">
-        Valitse juhlistettava ajankohta:
-        <input type="date" id="dateInput" value="2000-01-01"></input>
-        <input type="time" id="timeInput" value="12:00"></input>
-        <input type="submit" id="submitInput"></input>
+    <div id="app">
+        <main>
+            <section id="moments"></section>
+            <section id="scales"></section>
+            <section id="debug">
+                <h2>Moments</h2>
+                <ul>
+                    <li v-for="moment in moments">
+                        {{ moment.name }}
+                    </li>
+                </ul>
+                <h2>Scales</h2>
+                <ul>
+                    <li v-for="scale in scales">
+                        {{ scale.name }}
+                    </li>
+                </ul>
+                <h2>Start</h2>
+                <p>{{ start }}</p>
+                <h2>End</h2>
+                <p>{{ end }}</p>
+                <h2>Important moments</h2>
+                <div id="calendar">
+                    <table>
+                        <template id="months" v-for="month in months">
+                        <tr><td colspan="6">
+                            <h3>{{month.name}}</h3>
+                        </td></tr>
+                        <tr v-for="week of getWeeks(new Date(start.getFullYear(), month.id-1, 1, 0, 0, 0))">
+                            <td v-for="day in week" class="day" :class="{today: isToday(day), notday: day === null}">
+                                <span class="markup">{{day === null ? '' : day.getDate()}}</span>
+                                <ul>
+                                    <li v-for="event in eventsFor(day)">
+                                        {{event.name}} ({{ event.spec }})
+                                    </li>
+                                </ul>
+                            </td>
+                        </tr>
+                        </template>
+                    </table>
+                </div>
+                <ul>
+                    <li v-for="importantMoment in importantMoments">
+                        {{importantMoment.name}} ({{ importantMoment.spec }}): {{ importantMoment.date }}
+                    </li>
+            </section>
+        </main>
     </div>
-    <br/>
-    <div id="DEBUG"></div>
+<style>
+    .day {
+        border: 1px solid black;
+        width: 6rem;
+        height: 4rem;
+    }
 
-    <script src="script.js"></script>
+    table {
+        border-collapse: collapse;
+    }
+    .today {
+        background-color: lightblue;
+    }
+    .notday {
+        border: none;
+    }
+
+</style>
+<script type="module">
+    import { createApp, ref } from 'vue'
+  
+    createApp({
+      setup() {
+        const moments = ref([
+            {id: 1, name: "Vuodenvaihde 2024", date: new Date(2024, 0, 1, 0, 0, 0), index: 0},
+        ])
+        const scales = ref([
+            {id: 1, name: "Sekunti", compute: (date, index) => {
+                const base = 10;
+                const magnitude = Math.floor(index / (base - 1))
+                const factor = (index % (base - 1)) + 1
+
+                const newDate = new Date(date)
+                const addedSeconds = factor * Math.pow(10, magnitude)
+                
+                newDate.setSeconds(newDate.getSeconds() + addedSeconds)
+                return {date: newDate, spec: `${factor}*10^${magnitude} sekuntia`}
+            }},
+            {id: 2, name: "Minuutti", compute: (date, index) => {
+                const base = 10;
+                const magnitude = Math.floor(index / (base - 1))
+                const factor = (index % (base - 1)) + 1
+
+                const newDate = new Date(date)
+                const addedMinutes = factor * Math.pow(10, magnitude)
+                
+                newDate.setMinutes(newDate.getMinutes() + addedMinutes)
+                return {date: newDate, spec: `${factor}*10^${magnitude} minuuttia`}
+            }},
+            {id: 3, name: "Tunti", compute: (date, index) => {
+                const base = 10;
+                const magnitude = Math.floor(index / (base - 1))
+                const factor = (index % (base - 1)) + 1
+
+                const newDate = new Date(date)
+                const addedHours = factor * Math.pow(10, magnitude)
+                
+                newDate.setHours(newDate.getHours() + addedHours)
+                return {date: newDate, spec: `${factor}*10^${magnitude} tuntia`}
+            }},
+            {id: 4, name: "Päivä", compute: (date, index) => {
+                const base = 10;
+                const magnitude = Math.floor(index / (base - 1))
+                const factor = (index % (base - 1)) + 1
+
+                const newDate = new Date(date)
+                const addedDays = factor * Math.pow(10, magnitude)
+                
+                newDate.setDate(newDate.getDate() + addedDays)
+                return {date: newDate, spec: `${factor}*10^${magnitude} päivää`}
+            }},
+            {id: 5, name: "Viikko", compute: (date, index) => {
+                const base = 10;
+                const magnitude = Math.floor(index / (base - 1))
+                const factor = (index % (base - 1)) + 1
+
+                const newDate = new Date(date)
+                const addedWeeks = factor * Math.pow(10, magnitude)
+                
+                newDate.setDate(newDate.getDate() + addedWeeks * 7)
+                return {date: newDate, spec: `${factor}*10^${magnitude} viikkoa`}
+            }},
+            {id: 6, name: "Kuukausi", compute: (date, index) => {
+                const base = 10;
+                const magnitude = Math.floor(index / (base - 1))
+                const factor = (index % (base - 1)) + 1
+
+                const newDate = new Date(date)
+                const addedMonths = factor * Math.pow(10, magnitude)
+                
+                newDate.setMonth(newDate.getMonth() + addedMonths)
+                return {date: newDate, spec: `${factor}*10^${magnitude} kuukautta`}
+            }},
+        ])
+        const start = ref(new Date(2024, 0, 1, 0, 0, 0))
+        const end = ref(new Date(2025, 0, 1, 0, 0, 0))
+        const months = [
+            {id: 1, name: "Tammikuu"},
+            {id: 2, name: "Helmikuu"},
+            {id: 3, name: "Maaliskuu"},
+            {id: 4, name: "Huhtikuu"},
+            {id: 5, name: "Toukokuu"},
+            {id: 6, name: "Kesäkuu"},
+            {id: 7, name: "Heinäkuu"},
+            {id: 8, name: "Elokuu"},
+            {id: 9, name: "Syyskuu"},
+            {id: 10, name: "Lokakuu"},
+            {id: 11, name: "Marraskuu"},
+            {id: 12, name: "Joulukuu"},
+        ]
+        const today = new Date()
+        return {
+          moments,
+          scales,
+          start,
+          end,
+          months,
+          today,
+        }
+      },
+      methods: {
+        isToday(date) {
+            if (date === null) {
+                return false
+            }
+            return date.toDateString() === this.today.toDateString()
+        },
+        eventsFor(date) {
+            const events = this.importantMoments.filter(importantMoment => {
+                const nextDay = new Date(date)
+                nextDay.setDate(nextDay.getDate() + 1)
+                if (importantMoment.date < date || importantMoment.date > nextDay) {
+                    return false
+                }
+                return true
+            })
+            return events
+        },
+        getWeeks(month) {
+            // Return array of days in weeks of a specific month
+            // A week always starts from Monday
+            const weeks = []
+            const firstDay = new Date(month.getFullYear(), month.getMonth(), 1)
+            const lastDay = new Date(month.getFullYear(), month.getMonth() + 1, 0)
+            const currentDay = new Date(firstDay)
+            const firstWeekday = firstDay.getDay()
+
+            const week = []
+            // Add nulls to pad
+            for (let i = 0; i < firstWeekday - 1; i++) {
+                week.push(null)
+            }
+            // Add up to 7 days
+            while (week.length < 7) {
+                week.push(new Date(currentDay))
+                currentDay.setDate(currentDay.getDate() + 1)
+            }
+
+            weeks.push(week)
+
+            // Add weeks until last day
+            while (currentDay < lastDay) {
+                const week = []
+                for (let i = 0; i < 7; i++) {
+                    if (currentDay <= lastDay) {
+                        week.push(new Date(currentDay))
+                        currentDay.setDate(currentDay.getDate() + 1)
+                    } else {
+                        week.push(null)
+                    }
+                }
+                weeks.push(week)
+            }
+
+            return weeks
+        }
+      },
+      computed: {
+        importantMoments() {
+            // For each moment, calculate scales until end date and return the results
+            const results = []
+            for (const moment of this.moments) {
+                for (const scale of this.scales) {
+                    let previous = null;
+                    let index = 0;
+                    while (previous === null || previous.date < this.end) {
+                        const result = scale.compute(moment.date, index)
+                        result.name = `${moment.name} ${scale.name} #${index+1}`
+                        index += 1;
+                        results.push(result)
+                        previous = result
+                    }
+                }
+                
+            }
+            return results
+                .filter(result => result.date < this.end && result.date > this.start)
+                .sort((a, b) => a.date - b.date)
+        }
+      }
+    }).mount('#app')
+  </script>
 </body>
 </html>
